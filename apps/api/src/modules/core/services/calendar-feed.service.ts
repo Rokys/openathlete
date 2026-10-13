@@ -9,12 +9,10 @@ import {
 
 import { EventType } from '@openathlete/database';
 
-import { validTimeZone } from 'src/common/utils/time-zone';
 import { AuthUser } from 'src/modules/auth/decorators/user.decorator';
 import { PrismaService } from 'src/modules/prisma/services/prisma.service';
 
 import { addUtcDays } from '../helpers/training-load';
-import { feedEntry } from './calendar-feed-entry';
 
 /** 256 random bits, URL-safe: 43 base64url characters */
 const TOKEN_BYTES = 32;
@@ -76,7 +74,7 @@ export class CalendarFeedService {
     }
     const athlete = await this.prisma.athlete.findUnique({
       where: { calendarFeedToken: token },
-      select: { athleteId: true, user: { select: { timeZone: true } } },
+      select: { athleteId: true },
     });
     if (!athlete) {
       throw new UnauthorizedException();
@@ -98,12 +96,9 @@ export class CalendarFeedService {
         type: true,
         startDate: true,
         endDate: true,
-        startTime: true,
-        endTime: true,
       },
       orderBy: { startDate: 'asc' },
     });
-    const timeZone = validTimeZone(athlete.user.timeZone);
 
     const calendar = ical({
       name: 'OpenAthlete',
@@ -111,13 +106,13 @@ export class CalendarFeedService {
       method: ICalCalendarMethod.PUBLISH,
     });
     for (const event of events) {
-      const { start, end, allDay } = feedEntry(event, timeZone);
       calendar.createEvent({
         // Stable across polls, so calendar apps update events in place
         id: `openathlete-event-${event.eventId}`,
-        start,
-        end,
-        allDay,
+        start: event.startDate,
+        // iCal all-day DTEND is exclusive: the day after the last day
+        end: addUtcDays(event.endDate ?? event.startDate, 1),
+        allDay: true,
         summary: event.name,
         description: `Type: ${event.type.toLowerCase()}`,
       });
