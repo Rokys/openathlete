@@ -110,7 +110,8 @@ export class CalendarFeedService {
         // Stable across polls, so calendar apps update events in place
         id: `openathlete-event-${event.eventId}`,
         start: event.startDate,
-        end: event.endDate,
+        // iCal all-day DTEND is exclusive: the day after the last day
+        end: addUtcDays(event.endDate ?? event.startDate, 1),
         allDay: true,
         summary: event.name,
         description: `Type: ${event.type.toLowerCase()}`,
