@@ -186,9 +186,14 @@ export class ActivityFeedbackListener {
       ].join('\n');
 
       const targetLanguage =
-        { FR: 'French', EN: 'English', IT: 'Italian', ES: 'Spanish' }[
-          userLanguage
-        ] ?? 'English';
+        {
+          FR: 'French',
+          EN: 'English',
+          IT: 'Italian',
+          ES: 'Spanish',
+          // The AI writes to the athlete: Portugal's variety, not Brazil's
+          PT: 'European Portuguese',
+        }[userLanguage] ?? 'English';
 
       const context = [
         '=== ATHLETE PROFILE & CURRENT LOAD ===',

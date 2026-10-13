@@ -8,11 +8,12 @@ export function useLanguageSync() {
   const { authenticated } = useAuthContext();
 
   const syncLanguage = useCallback(
-    async (lang: 'en' | 'fr' | 'it' | 'es') => {
+    async (lang: 'en' | 'fr' | 'it' | 'es' | 'pt') => {
       // Sync with backend if authenticated
       if (authenticated) {
         try {
-          const language = lang.toUpperCase() as 'FR' | 'EN' | 'IT' | 'ES';
+          const language = lang.toUpperCase() as
+            'FR' | 'EN' | 'IT' | 'ES' | 'PT';
           await UserAPI.updateLanguage(language);
         } catch (error) {
           console.error('Failed to sync language with backend:', error);

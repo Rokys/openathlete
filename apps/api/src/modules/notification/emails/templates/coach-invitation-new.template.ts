@@ -54,6 +54,18 @@ const translations = {
     expiryNote:
       'Questo invito è valido per 7 giorni. Se non sei interessato, puoi ignorare questa email.',
   },
+  PT: {
+    title: 'Convite para te juntares ao OpenAthlete',
+    preview: (athleteName: string) =>
+      `${athleteName} convida-te a juntares-te ao OpenAthlete como treinador`,
+    description: (athleteName: string) =>
+      `${athleteName} convida-te a juntares-te ao OpenAthlete como treinador. Clica no botão abaixo para criares a tua conta e começares a acompanhar os teus atletas.`,
+    buttonLabel: 'Criar a minha conta',
+    linkNote: (url: string) =>
+      `Se o botão não funcionar, copia e cola esta ligação no teu navegador: ${url}`,
+    expiryNote:
+      'Este convite é válido durante 7 dias. Se não tiveres interesse, podes ignorar este email.',
+  },
 } as const;
 
 export function buildCoachInvitationNewEmail({

@@ -66,6 +66,21 @@ const translations = {
     helpNote:
       'Hai domande? Rispondi a questa email e ti risponderemo il prima possibile.',
   },
+  PT: {
+    title: 'Obrigado por apoiares o OpenAthlete',
+    preview: 'Já és Apoiante',
+    greeting: (name?: string) =>
+      name
+        ? `Olá ${name}, obrigado por apoiares o OpenAthlete.`
+        : 'Obrigado por apoiares o OpenAthlete.',
+    perks:
+      'Como Apoiante, podes treinar tantos atletas quantos quiseres, e a IA está incluída todos os meses, sem precisares de uma chave própria.',
+    description:
+      'O teu apoio financia um projeto aberto e independente. Podes gerir a faturação ou cancelar a qualquer momento.',
+    buttonLabel: 'Gerir subscrição',
+    helpNote:
+      'Dúvidas? Responde a este email e voltaremos a contactar-te em breve.',
+  },
 } as const;
 
 export function buildSubscriptionConfirmationEmail({

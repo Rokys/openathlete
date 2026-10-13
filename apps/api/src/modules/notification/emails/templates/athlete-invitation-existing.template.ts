@@ -54,6 +54,18 @@ const translations = {
     settingsNote:
       'Puoi gestire tutti i tuoi inviti nella sezione Impostazioni del tuo account.',
   },
+  PT: {
+    title: 'Novo convite de treinador',
+    preview: (coachName: string) =>
+      `${coachName} convida-te a juntares-te à equipa`,
+    description: (coachName: string) =>
+      `${coachName} convida-te a juntares-te à equipa de atletas no OpenAthlete. Podes aceitar ou recusar este convite nas tuas definições.`,
+    buttonLabel: 'Ver convites',
+    linkNote: (url: string) =>
+      `Se o botão não funcionar, copia e cola esta ligação no teu navegador: ${url}`,
+    settingsNote:
+      'Podes gerir todos os teus convites na secção Definições da tua conta.',
+  },
 } as const;
 
 export function buildAthleteInvitationExistingEmail({

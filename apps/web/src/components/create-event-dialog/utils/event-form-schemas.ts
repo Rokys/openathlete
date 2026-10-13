@@ -3,9 +3,17 @@ import { z } from 'zod';
 
 import {
   COMPETITION_PRIORITY,
+  EVENT_TIME_PATTERN,
   EVENT_TYPE,
   SPORT_TYPE,
+  isEventEndAfterStart,
 } from '@openathlete/shared';
+
+/** An HH:mm time, or empty when the field is left blank */
+const timeOfDayField = z
+  .union([z.literal(''), z.string().regex(EVENT_TIME_PATTERN)])
+  .optional()
+  .nullable();
 
 // Base schema for all event types
 export const baseEventFormSchema = z.object({
@@ -27,6 +35,9 @@ export const baseEventFormSchema = z.object({
       }),
     )
     .optional(),
+  // Planned time of day, on the athlete's wall clock. Blank: the whole day
+  startTime: timeOfDayField,
+  endTime: timeOfDayField,
   name: z.string().min(1, m.required()).max(100),
   description: z.string().optional(),
   saveAsTemplate: z.boolean().optional(),
@@ -86,12 +97,23 @@ export const activityEventFormSchema = baseEventFormSchema.extend({
 });
 
 // Discriminated union for all event types
-export const eventFormSchema = z.discriminatedUnion('type', [
-  trainingEventFormSchema,
-  competitionEventFormSchema,
-  noteEventFormSchema,
-  activityEventFormSchema,
-]);
+export const eventFormSchema = z
+  .discriminatedUnion('type', [
+    trainingEventFormSchema,
+    competitionEventFormSchema,
+    noteEventFormSchema,
+    activityEventFormSchema,
+  ])
+  .superRefine((values, ctx) => {
+    if (!isEventEndAfterStart(values.startTime, values.endTime)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['endTime'],
+        // Read when it fails, so it follows the language chosen since
+        message: m.event_end_time_before_start(),
+      });
+    }
+  });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
 
@@ -113,4 +135,9 @@ export function withEquipmentId<T extends object>(
     ...rest,
     equipmentId: equipment === NO_EQUIPMENT ? null : Number(equipment),
   };
+}
+
+/** What the API takes for a time field: HH:mm, or null for no set time */
+export function timeOfDayOrNull(value: string | null | undefined) {
+  return value ? value : null;
 }

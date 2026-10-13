@@ -27,6 +27,7 @@ import type { SeriesScope } from '../../calendar/series-scope-dialog';
 import { endOfLocalDateInput } from '../../calendar/utils/local-date';
 import {
   type EventFormValues,
+  timeOfDayOrNull,
   withEquipmentId,
 } from '../utils/event-form-schemas';
 
@@ -141,6 +142,8 @@ export function useEventFormSubmission(
             saveAsTemplate,
             startDate,
             endDate,
+            startTime,
+            endTime,
             repeatEveryWeeks,
             repeatUntil,
             ...formData
@@ -164,6 +167,13 @@ export function useEventFormSubmission(
             ...eventData,
             ...(startDate && { startDate }),
             ...(endDate && { endDate }),
+            // Only planned sessions have a time of day: an activity's start
+            // is in its date. Null clears a time that was set before
+            ...((data.type === EVENT_TYPE.TRAINING ||
+              data.type === EVENT_TYPE.COMPETITION) && {
+              startTime: timeOfDayOrNull(startTime),
+              endTime: timeOfDayOrNull(endTime),
+            }),
           };
 
           // For training events, always include workout (even if empty)

@@ -24,6 +24,13 @@ model Event {
   startDate DateTime  @map("start_date")
   /// Event end date and time
   endDate   DateTime  @map("end_date")
+  /// Planned start time of day as HH:mm, on the wall clock of the athlete's
+  /// time zone. Null: the session has no set time, it is planned for the day.
+  /// Not part of startDate, which stays a day marker: a time stored there
+  /// would move the session to another day for a viewer in another zone.
+  startTime String?   @map("start_time") @db.VarChar(5)
+  /// Planned end time of day as HH:mm, same wall clock as startTime
+  endTime   String?   @map("end_time") @db.VarChar(5)
   /// Event name/title
   name      String
   /// Event type: TRAINING, COMPETITION, NOTE, or ACTIVITY

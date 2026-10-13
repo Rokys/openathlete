@@ -81,7 +81,7 @@ export function EventFormFields({
       )}
       {!isTemplate &&
         (type === EVENT_TYPE.TRAINING || type === EVENT_TYPE.COMPETITION) && (
-          <div className="col-span-1 md:col-span-2">
+          <div className="col-span-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
             <RHFDatePicker
               name="startDate"
               label={m.start_date()}
@@ -94,6 +94,14 @@ export function EventFormFields({
                 }
               }}
             />
+            <TimeOfDayFields />
+          </div>
+        )}
+      {isTemplate &&
+        (type === EVENT_TYPE.TRAINING || type === EVENT_TYPE.COMPETITION) && (
+          // A template has no date, but the sessions made from it keep its time
+          <div className="col-span-1 md:col-span-2 sm:max-w-[50%]">
+            <TimeOfDayFields />
           </div>
         )}
       {!isTemplate && type === EVENT_TYPE.ACTIVITY && (
@@ -196,6 +204,16 @@ export function EventFormFields({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/** The planned start and end of the day, next to the date */
+function TimeOfDayFields() {
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <RHFTextField name="startTime" type="time" label={m.start_time()} />
+      <RHFTextField name="endTime" type="time" label={m.end_time()} />
     </div>
   );
 }

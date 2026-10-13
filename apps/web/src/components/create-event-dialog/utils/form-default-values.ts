@@ -30,6 +30,8 @@ export function getFormDefaultValues(
       description: props.event.description ?? '',
       startDate: props.event.startDate,
       endDate: props.event.endDate,
+      startTime: props.event.startTime ?? '',
+      endTime: props.event.endTime ?? '',
     } as EventFormValues;
 
     if (props.event.type === EVENT_TYPE.TRAINING) {
@@ -78,6 +80,8 @@ export function getFormDefaultValues(
       description: prefilled.description ?? '',
       startDate: prefilled.startDate,
       endDate: prefilled.endDate,
+      startTime: prefilled.startTime ?? '',
+      endTime: prefilled.endTime ?? '',
     } as EventFormValues;
 
     if (prefilled.type === EVENT_TYPE.TRAINING) {
@@ -129,6 +133,8 @@ export function getFormDefaultValues(
       description: '',
       startDate,
       endDate: calculatedEndDate,
+      startTime: '',
+      endTime: '',
       sport: SPORT_TYPE.RUNNING,
       saveAsTemplate: false,
       // A logged activity shows the hour its end implies
