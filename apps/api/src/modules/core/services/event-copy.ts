@@ -55,6 +55,9 @@ export function copyOf(
   const base = {
     name: event.name,
     type: event.type,
+    // The planned time of day is a wall clock: it does not move with the date
+    startTime: event.startTime,
+    endTime: event.endTime,
     ...shiftedDates(event, offsetDays),
     ...(event.athleteId && {
       athlete: { connect: { athleteId: event.athleteId } },

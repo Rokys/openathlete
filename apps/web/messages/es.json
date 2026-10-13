@@ -271,6 +271,7 @@
   "select_a_sport": "Selecciona un deporte",
   "start_time": "Hora de inicio",
   "end_time": "Hora de fin",
+  "event_end_time_before_start": "La hora de fin debe ser posterior a la hora de inicio",
   "description": "Descripción",
   "goal_distance": "Distancia prevista",
   "goal_duration": "Duración prevista",

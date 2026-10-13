@@ -33,6 +33,7 @@ import {
   SeasonEvent,
   UpdateEventDto,
   createWorkoutSchema,
+  isEventEndAfterStart,
   mapPrismaWorkoutToDto,
   mapWorkoutDtoToPrisma,
   startOfDay,
@@ -325,11 +326,25 @@ export class EventService {
 
     const workout = data.type === 'TRAINING' ? data.workout : undefined;
 
-    const { type, endDate, startDate, name, athleteId, ...rest } = data;
+    const {
+      type,
+      endDate,
+      startDate,
+      startTime,
+      endTime,
+      name,
+      athleteId,
+      ...rest
+    } = data;
 
     // Remove workout from rest if it exists (it shouldn't be passed to Prisma create)
     if ('workout' in rest) {
       delete rest.workout;
+    }
+    if (!isEventEndAfterStart(startTime, endTime)) {
+      throw new BadRequestException(
+        'The end time must be after the start time',
+      );
     }
 
     const finalAthleteId = athleteId || user?.athlete?.athleteId;
@@ -356,6 +371,8 @@ export class EventService {
         athleteId: finalAthleteId,
         startDate,
         endDate,
+        startTime,
+        endTime,
         name,
         type,
         [type.toLocaleLowerCase()]: {
@@ -493,11 +510,24 @@ export class EventService {
       type,
       startDate,
       endDate: requestedEndDate,
+      startTime,
+      endTime,
       name,
       athleteId,
       ...rest
     } = data;
     let endDate = requestedEndDate;
+
+    // Checked on what the event holds after the change: one time can move
+    // while the other stays
+    const finalStartTime =
+      startTime === undefined ? event.startTime : startTime;
+    const finalEndTime = endTime === undefined ? event.endTime : endTime;
+    if (!isEventEndAfterStart(finalStartTime, finalEndTime)) {
+      throw new BadRequestException(
+        'The end time must be after the start time',
+      );
+    }
 
     if ('workout' in rest) {
       delete rest.workout;
@@ -539,6 +569,8 @@ export class EventService {
       data: {
         startDate,
         endDate,
+        startTime,
+        endTime,
         name,
         type,
         ...(type
@@ -1166,7 +1198,8 @@ export class EventService {
       throw new NotFoundException('Event not found');
     }
 
-    const { startDate, endDate, name, type, athleteId } = event;
+    const { startDate, endDate, startTime, endTime, name, type, athleteId } =
+      event;
 
     const subEntityData: Record<string, unknown> = {
       ...event[type.toLocaleLowerCase() as Lowercase<Event['type']>],
@@ -1191,6 +1224,8 @@ export class EventService {
       data: {
         startDate,
         endDate,
+        startTime,
+        endTime,
         name,
         type,
         athleteId,

@@ -5,7 +5,7 @@ description: Add or change user-facing text in OpenAthlete (web app Paraglide ca
 
 # User-facing text
 
-Supported languages: English (`en`), French (`fr`), Italian (`it`), Spanish (`es`). French users use the informal "tu" in AI-generated text and the formal "vous" in the UI, as the existing catalogs do.
+Supported languages: English (`en`), French (`fr`), Italian (`it`), Spanish (`es`), European Portuguese (`pt`). French users use the informal "tu" in AI-generated text and the formal "vous" in the UI, as the existing catalogs do. The Portuguese catalog addresses the user with the informal "tu" throughout and follows Portugal's spelling and vocabulary (utilizador, ficheiro, ecrã, palavra-passe, definições); `pt` is Portugal's variety, a Brazilian one would be a locale of its own.
 
 ## Web app
 

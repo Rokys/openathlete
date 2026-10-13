@@ -49,6 +49,16 @@ const translations = {
     ignoreNote:
       'Se non hai effettuato questa richiesta, puoi ignorare questa email.',
   },
+  PT: {
+    title: 'Redefine a tua palavra-passe',
+    preview: 'Redefine a tua palavra-passe do OpenAthlete',
+    description:
+      'Recebemos um pedido para redefinir a tua palavra-passe. Clica no botão abaixo para criares uma nova palavra-passe.',
+    buttonLabel: 'Escolher uma nova palavra-passe',
+    linkNote: (url: string) =>
+      `Se o botão não funcionar, copia e cola esta ligação no teu navegador: ${url}`,
+    ignoreNote: 'Se não fizeste este pedido, podes ignorar este email.',
+  },
 } as const;
 
 export function buildPasswordResetEmail({

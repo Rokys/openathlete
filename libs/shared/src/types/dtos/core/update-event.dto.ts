@@ -1,11 +1,15 @@
 import { z } from 'zod';
 
+import { eventTimeSchema } from '../../../utils/event-time';
 import { COMPETITION_PRIORITY, EVENT_TYPE, SPORT_TYPE } from '../../misc';
 import { createWorkoutStepDtoSchema } from './workout.dto';
 
 const baseEventUpdateSchema = z.object({
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
+  /** Null clears the planned time of day */
+  startTime: eventTimeSchema,
+  endTime: eventTimeSchema,
   name: z.string().min(1).max(100).optional(),
   athleteId: z.number().optional().nullable(),
 });

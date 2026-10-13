@@ -70,6 +70,22 @@ const translations = {
       'Questi messaggi sono stati raggruppati per evitare di inviarti una email per ogni singolo messaggio.',
     from: (senderName: string, time: string) => `Da ${senderName} — ${time}`,
   },
+  PT: {
+    subject: 'Novas mensagens na tua caixa de entrada do OpenAthlete',
+    title: 'Novas mensagens na tua caixa de entrada',
+    preview: (count: number) =>
+      count > 1
+        ? `${count} novas mensagens numa conversa`
+        : 'Nova mensagem numa conversa',
+    intro: (threadTitle?: string | null) =>
+      threadTitle
+        ? `Recebeste novas mensagens na conversa “${threadTitle}” no OpenAthlete.`
+        : 'Recebeste novas mensagens numa das tuas conversas no OpenAthlete.',
+    openInbox: 'Abrir caixa de entrada',
+    footerNote:
+      'Estas mensagens foram agrupadas para não receberes um email por cada mensagem.',
+    from: (senderName: string, time: string) => `De ${senderName} — ${time}`,
+  },
 } as const;
 
 export function messageThreadNotificationSubject(
@@ -109,7 +125,9 @@ export function buildMessageThreadNotificationEmail({
             ? 'fr-FR'
             : language === Language.IT
               ? 'it-IT'
-              : 'en-US',
+              : language === Language.PT
+                ? 'pt-PT'
+                : 'en-US',
         {
           hour: '2-digit',
           minute: '2-digit',

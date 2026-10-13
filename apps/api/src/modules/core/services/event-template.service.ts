@@ -327,6 +327,8 @@ export class EventTemplateService {
       data: {
         startDate: dto.startDate,
         endDate: dto.endDate,
+        startTime: templateEvent.startTime,
+        endTime: templateEvent.endTime,
         name: templateEvent.name,
         type: templateEvent.type,
         athleteId,

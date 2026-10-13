@@ -31,6 +31,10 @@ export function layout({
       'Todos los derechos reservados',
       'Recibes este correo como resultado de una acción en tu cuenta.',
     ],
+    PT: [
+      'Todos os direitos reservados',
+      'Recebes este email na sequência de uma ação na tua conta.',
+    ],
   }[language];
   return `
 <!DOCTYPE html>
