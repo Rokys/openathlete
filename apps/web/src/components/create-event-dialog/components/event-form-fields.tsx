@@ -18,11 +18,18 @@ import { RHFDateTimePicker } from '../../hook-form/rhf-datetime-picker';
 import { RHFElevation } from '../../hook-form/rhf-elevation';
 import { RHFRpe } from '../../hook-form/rhf-rpe';
 import { RHFTextarea } from '../../hook-form/rhf-textarea';
+import { RHFTimeField } from '../../hook-form/rhf-time-field';
 import { SelectItem } from '../../ui/select';
+import { useTimeCoupling } from '../hooks/use-time-coupling';
 import {
   type EventFormValues,
   NO_EQUIPMENT,
 } from '../utils/event-form-schemas';
+import {
+  durationChanged,
+  endTimeChanged,
+  startTimeChanged,
+} from '../utils/time-of-day';
 import { CompetitionPriorityField } from './competition-priority-field';
 
 type Props = {
@@ -52,6 +59,8 @@ export function EventFormFields({
   isTemplate,
   logging,
 }: Props) {
+  const { state: timeState, apply: applyTimes } = useTimeCoupling();
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
       <RHFTextField
@@ -94,14 +103,14 @@ export function EventFormFields({
                 }
               }}
             />
-            <TimeOfDayFields />
+            <TimeOfDayFields hasStepsWithDuration={hasStepsWithDuration} />
           </div>
         )}
       {isTemplate &&
         (type === EVENT_TYPE.TRAINING || type === EVENT_TYPE.COMPETITION) && (
           // A template has no date, but the sessions made from it keep its time
           <div className="col-span-1 md:col-span-2 sm:max-w-[50%]">
-            <TimeOfDayFields />
+            <TimeOfDayFields hasStepsWithDuration={hasStepsWithDuration} />
           </div>
         )}
       {!isTemplate && type === EVENT_TYPE.ACTIVITY && (
@@ -143,6 +152,10 @@ export function EventFormFields({
                 const end = new Date(start);
                 end.setSeconds(start.getSeconds() + duration);
                 setValue('endDate', end);
+              }
+              // The end time follows the duration typed
+              if (!hasStepsWithDuration) {
+                applyTimes(durationChanged(timeState(), value));
               }
             }}
           />
@@ -208,12 +221,35 @@ export function EventFormFields({
   );
 }
 
-/** The planned start and end of the day, next to the date */
-function TimeOfDayFields() {
+/**
+ * The planned start and end of the day, next to the date. They move together
+ * with the goal duration: a new end sets the duration, a new start carries the
+ * end with it, and the duration (typed, or added up from the workout steps)
+ * gives the end. Nothing changes until one of them is touched.
+ */
+export function TimeOfDayFields({
+  hasStepsWithDuration,
+}: {
+  hasStepsWithDuration: boolean;
+}) {
+  const { state, apply } = useTimeCoupling();
+
   return (
     <div className="grid grid-cols-2 gap-4">
-      <RHFTextField name="startTime" type="time" label={m.start_time()} />
-      <RHFTextField name="endTime" type="time" label={m.end_time()} />
+      <RHFTimeField
+        name="startTime"
+        label={m.start_time()}
+        onValueChange={(value, previous) =>
+          apply(startTimeChanged(state(), previous, value))
+        }
+      />
+      <RHFTimeField
+        name="endTime"
+        label={m.end_time()}
+        // The workout steps decide the duration, and so the end
+        disabled={hasStepsWithDuration}
+        onValueChange={(value) => apply(endTimeChanged(state(), value))}
+      />
     </div>
   );
 }
