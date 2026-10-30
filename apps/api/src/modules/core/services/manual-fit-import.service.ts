@@ -5,6 +5,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   Optional,
   PayloadTooLargeException,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Athlete, Prisma } from '@openathlete/database';
 import {
   CompressedActivityStream,
+  type HrMaxSuggestionDto,
   SPORT_TYPE,
   isValidGpsPoint,
 } from '@openathlete/shared';
@@ -21,6 +23,7 @@ import { CoachActivityNoticeEvent } from '../../../events/coach-activity-notice.
 import { AuthUser } from '../../auth/decorators/user.decorator';
 import { PrismaService } from '../../prisma/services/prisma.service';
 import { QueueService } from '../../queue/queue.service';
+import { recordActivityMaxHeartrate } from '../helpers/activity-max-heartrate';
 import { uncompressActivityStream } from '../helpers/activity-stream';
 import {
   MAX_MANUAL_FIT_BYTES,
@@ -44,6 +47,8 @@ type PreparedActivity =
 
 @Injectable()
 export class ManualFitImportService {
+  private readonly logger = new Logger(ManualFitImportService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly queue: QueueService,
@@ -262,6 +267,20 @@ export class ManualFitImportService {
     } catch {
       processingQueued = false;
     }
+    // The metrics are a bonus: whatever goes wrong there, the import stands
+    let hrMaxSuggestion: HrMaxSuggestionDto | null = null;
+    try {
+      hrMaxSuggestion = await recordActivityMaxHeartrate(
+        this.prisma,
+        athlete,
+        saved.activity.event.startDate,
+        fit.activity.maxHeartrate,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Could not record the maximum heart rate of event ${saved.activity.eventId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
     return {
       eventId: saved.activity.eventId,
       startDate: saved.activity.event.startDate,
@@ -269,6 +288,7 @@ export class ManualFitImportService {
       alreadyImported: saved.alreadyImported,
       processingQueued,
       warnings: fit.warnings,
+      hrMaxSuggestion,
     };
   }
 }

@@ -45,6 +45,19 @@ export const ACTIVITY_IMPORT_WARNINGS = [
 
 export type ActivityImportWarning = (typeof ACTIVITY_IMPORT_WARNINGS)[number];
 
+/**
+ * The file's highest heart rate is above the athlete's registered maximum
+ * (HR_MAX): the athlete is asked whether it becomes the new one.
+ */
+export interface HrMaxSuggestionDto {
+  /** bpm in the file */
+  value: number;
+  /** The day of the activity in the athlete's time zone, YYYY-MM-DD */
+  date: string;
+  /** The athlete's latest registered HR_MAX, in bpm */
+  current: number;
+}
+
 export interface ImportedActivityDto {
   eventId: number;
   name: string;
@@ -55,4 +68,6 @@ export interface ImportedActivityDto {
   /** False when the activity is saved but its processing could not be queued. */
   processingQueued: boolean;
   warnings: ActivityImportWarning[];
+  /** Set only when the file's maximum heart rate is above the athlete's HR_MAX */
+  hrMaxSuggestion?: HrMaxSuggestionDto | null;
 }

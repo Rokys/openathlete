@@ -32,6 +32,7 @@ vi.mock('@/utils/axios', () => ({
       gpx: '/activity-import/gpx',
       tcx: '/activity-import/tcx',
     },
+    metric: { createMetric: '/metric' },
   },
 }));
 vi.mock('@/components/event-details/event-details', () => ({
@@ -406,5 +407,132 @@ describe('ImportFitDialog', () => {
     expect(
       dialog().querySelector('[data-import-result="error"]')!.textContent,
     ).toContain('fit_import_invalid');
+  });
+
+  describe('maximum heart rate above the registered one', () => {
+    const SUGGESTION = { value: 115, date: '2026-09-21', current: 100 };
+    const prompt = () => dialog().querySelector('[data-hr-max-prompt]');
+    const button = (label: string) =>
+      [...prompt()!.querySelectorAll('button')].find((b) =>
+        b.textContent!.startsWith(label),
+      )!;
+    const metricCalls = () =>
+      api.post.mock.calls.filter(([url]) => url === '/metric');
+
+    async function importWithSuggestion(suggestion = SUGGESTION) {
+      api.post.mockResolvedValueOnce(
+        imported(9, 'Easy run', { hrMaxSuggestion: suggestion }),
+      );
+      await choose(tcx('Easy run.tcx'));
+      await submit();
+    }
+
+    it('asks, and does not register anything before the athlete answers', async () => {
+      await importWithSuggestion();
+
+      expect(prompt()!.textContent).toContain('fit_import_hr_max_title');
+      expect(prompt()!.textContent).toContain(
+        'fit_import_hr_max_question {"file":"Easy run.tcx","value":115,"current":100}',
+      );
+      expect(metricCalls()).toHaveLength(0);
+    });
+
+    it('registers it as HR_MAX, on the day of the activity, when accepted', async () => {
+      await importWithSuggestion();
+      api.post.mockResolvedValueOnce({ data: {} });
+
+      await act(async () => button('fit_import_hr_max_accept').click());
+      await waitFor(() => !prompt());
+
+      expect(metricCalls()).toHaveLength(1);
+      const [, body] = metricCalls()[0] as [string, Record<string, unknown>];
+      expect(body).toEqual({
+        type: 'HR_MAX',
+        date: new Date('2026-09-21'),
+        value: 115,
+      });
+      // The import already has a status of its own: look for this one's text
+      expect(dialog().textContent).toContain(
+        'fit_import_hr_max_saved {"value":115}',
+      );
+    });
+
+    it('registers nothing when declined, and stops asking', async () => {
+      await importWithSuggestion();
+
+      await act(async () => button('fit_import_hr_max_decline').click());
+
+      expect(prompt()).toBeNull();
+      expect(metricCalls()).toHaveLength(0);
+      expect(dialog().textContent).not.toContain('fit_import_hr_max_saved');
+    });
+
+    it('keeps the question open, with an alert, when registering fails', async () => {
+      await importWithSuggestion();
+      api.post.mockRejectedValueOnce(failure(500, 'boom'));
+
+      await act(async () => button('fit_import_hr_max_accept').click());
+      await waitFor(() => !!prompt()!.querySelector('[role="alert"]'));
+
+      expect(prompt()!.querySelector('[role="alert"]')!.textContent).toBe(
+        'fit_import_hr_max_failed',
+      );
+      expect(
+        (button('fit_import_hr_max_accept') as HTMLButtonElement).disabled,
+      ).toBe(false);
+
+      // And the athlete can try again
+      api.post.mockResolvedValueOnce({ data: {} });
+      await act(async () => button('fit_import_hr_max_accept').click());
+      await waitFor(() => !prompt());
+      expect(metricCalls()).toHaveLength(2);
+      expect(prompt()).toBeNull();
+    });
+
+    it('asks once, about the highest, when several files beat it', async () => {
+      api.post
+        .mockResolvedValueOnce(
+          imported(1, 'Monday', {
+            hrMaxSuggestion: { value: 112, date: '2026-09-21', current: 100 },
+          }),
+        )
+        .mockResolvedValueOnce(
+          imported(2, 'Tuesday', {
+            hrMaxSuggestion: { value: 120, date: '2026-09-22', current: 100 },
+          }),
+        )
+        .mockResolvedValueOnce(imported(3, 'Wednesday'));
+      await choose(fit('Monday.fit'), fit('Tuesday.fit'), fit('Wednesday.fit'));
+      await submit();
+
+      expect(dialog().querySelectorAll('[data-hr-max-prompt]')).toHaveLength(1);
+      expect(prompt()!.textContent).toContain(
+        'fit_import_hr_max_question {"file":"Tuesday.fit","value":120,"current":100}',
+      );
+    });
+
+    it('does not ask when no file beats the registered maximum', async () => {
+      api.post.mockResolvedValueOnce(
+        imported(9, 'Easy run', { hrMaxSuggestion: null }),
+      );
+      await choose(tcx('Easy run.tcx'));
+      await submit();
+
+      expect(prompt()).toBeNull();
+    });
+
+    it('asks again for the next import', async () => {
+      await importWithSuggestion();
+      await act(async () => button('fit_import_hr_max_decline').click());
+      expect(prompt()).toBeNull();
+
+      const more = [...dialog().querySelectorAll('button')].find(
+        (b) => b.textContent === 'fit_import_more',
+      )!;
+      await act(async () => more.click());
+      await importWithSuggestion();
+
+      expect(prompt()).not.toBeNull();
+    });
   });
 });

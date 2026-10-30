@@ -3,6 +3,7 @@ import {
   useImportGpxMutation,
   useImportTcxMutation,
 } from '@/api/activity-import';
+import { useCreateMetricMutation } from '@/api/metric';
 import { EventDetails } from '@/components/event-details/event-details';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +26,7 @@ import {
   ActivityImportWarning,
   ImportedActivityDto,
   MAX_ACTIVITY_FILE_BYTES,
+  METRIC_TYPE,
   SPORT_TYPE,
 } from '@openathlete/shared';
 
@@ -35,6 +37,8 @@ import {
   gpxTrackName,
   tcxActivityName,
 } from './activity-file';
+import { HrMaxPrompt } from './hr-max-prompt';
+import { pickHrMaxSuggestion } from './hr-max-suggestion';
 
 type FileResult = {
   fileName: string;
@@ -149,6 +153,12 @@ export function ImportFitDialog({ trigger = true, dropped }: Props = {}) {
   const importFit = useImportFitMutation();
   const importGpx = useImportGpxMutation();
   const importTcx = useImportTcxMutation();
+  const createMetric = useCreateMetricMutation();
+  // What became of the question about the maximum heart rate
+  const [hrMaxAnswer, setHrMaxAnswer] = useState<
+    'registered' | 'declined' | null
+  >(null);
+  const [hrMaxFailed, setHrMaxFailed] = useState(false);
   const single = files.length === 1;
   const sports = Object.entries(sportTypeLabelMap).sort(([, a], [, b]) =>
     a.localeCompare(b, getLocale()),
@@ -186,6 +196,8 @@ export function ImportFitDialog({ trigger = true, dropped }: Props = {}) {
     setProgress(0);
     setResults(null);
     setViewEventId(null);
+    setHrMaxAnswer(null);
+    setHrMaxFailed(false);
   }
 
   async function submit(event: FormEvent) {
@@ -219,6 +231,26 @@ export function ImportFitDialog({ trigger = true, dropped }: Props = {}) {
     setResults(done);
     running.current = false;
     setBusy(false);
+  }
+
+  const hrMaxOffer = pickHrMaxSuggestion(results);
+
+  async function registerHrMax() {
+    if (!hrMaxOffer) return;
+    setHrMaxFailed(false);
+    try {
+      // The day of the activity, as the server read it in the athlete's zone
+      await createMetric.mutateAsync({
+        body: {
+          type: METRIC_TYPE.HR_MAX,
+          date: new Date(hrMaxOffer.date),
+          value: hrMaxOffer.value,
+        },
+      });
+      setHrMaxAnswer('registered');
+    } catch {
+      setHrMaxFailed(true);
+    }
   }
 
   const counts = results && {
@@ -310,6 +342,20 @@ export function ImportFitDialog({ trigger = true, dropped }: Props = {}) {
                   </li>
                 ))}
               </ul>
+              {hrMaxOffer && hrMaxAnswer === null && (
+                <HrMaxPrompt
+                  offer={hrMaxOffer}
+                  saving={createMetric.isPending}
+                  failed={hrMaxFailed}
+                  onAccept={registerHrMax}
+                  onDecline={() => setHrMaxAnswer('declined')}
+                />
+              )}
+              {hrMaxOffer && hrMaxAnswer === 'registered' && (
+                <p role="status" className="font-medium">
+                  {m.fit_import_hr_max_saved({ value: hrMaxOffer.value })}
+                </p>
+              )}
               <DialogFooter>
                 <Button variant="outline" onClick={reset}>
                   {m.fit_import_more()}

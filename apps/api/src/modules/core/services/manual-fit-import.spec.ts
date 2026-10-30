@@ -137,6 +137,13 @@ function setup() {
         activity: { eventActivityId: 80, eventId: 90 },
       })),
     },
+    // The heart rate metrics: nothing there, nothing asked
+    user: { findUnique: jest.fn().mockResolvedValue(null) },
+    athleteMetric: {
+      findUnique: jest.fn().mockResolvedValue(null),
+      upsert: jest.fn().mockResolvedValue({}),
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
     $transaction: jest.fn(),
   };
   db.$transaction.mockImplementation(async (fn) => fn(db));
@@ -637,5 +644,109 @@ describe('Manual TCX import', () => {
         'Rodaje',
       ),
     ).rejects.toThrow('TCX_INVALID');
+  });
+
+  describe('maximum heart rate', () => {
+    // One lap whose device summary says 115 bpm at most, as the lap reports it
+    const tcxWithMaxHeartrate = (max: number) => {
+      const buffer = Buffer.from(
+        `<?xml version="1.0"?><TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"><Activities><Activity Sport="Running"><Id>2020-01-02T09:00:00Z</Id><Lap StartTime="2020-01-02T09:00:00Z"><TotalTimeSeconds>120</TotalTimeSeconds><DistanceMeters>230</DistanceMeters><AverageHeartRateBpm><Value>98</Value></AverageHeartRateBpm><MaximumHeartRateBpm><Value>${max}</Value></MaximumHeartRateBpm><Track><Trackpoint><Time>2020-01-02T09:00:00Z</Time><HeartRateBpm><Value>90</Value></HeartRateBpm></Trackpoint><Trackpoint><Time>2020-01-02T09:01:00Z</Time><HeartRateBpm><Value>100</Value></HeartRateBpm></Trackpoint></Track></Lap></Activity></Activities></TrainingCenterDatabase>`,
+      );
+      return { originalname: 'hr.tcx', buffer, size: buffer.length };
+    };
+
+    function withMetrics(currentHrMax: number | null) {
+      const ctx = setup();
+      ctx.db.athlete.findUnique.mockResolvedValue({ athleteId: 4, userId: 4 });
+      const metrics = {
+        user: {
+          findUnique: jest
+            .fn()
+            .mockResolvedValue({ timeZone: 'Europe/Lisbon' }),
+        },
+        athleteMetric: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          upsert: jest.fn().mockResolvedValue({}),
+          findFirst: jest
+            .fn()
+            .mockResolvedValue(
+              currentHrMax === null ? null : { value: currentHrMax },
+            ),
+        },
+      };
+      Object.assign(ctx.db, metrics);
+      return { ...ctx, metrics };
+    }
+
+    test("records the lap's maximum for the day and asks about HR_MAX when it is higher", async () => {
+      const { service, metrics } = withMetrics(100);
+
+      const result = await service.importTcx(
+        athlete,
+        tcxWithMaxHeartrate(115),
+        'Treino',
+      );
+
+      expect(metrics.user.findUnique).toHaveBeenCalledWith({
+        where: { userId: 4 },
+        select: { timeZone: true },
+      });
+      expect(metrics.athleteMetric.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: {
+            athleteId: 4,
+            type: 'HR_MAX_DAILY',
+            date: new Date('2020-01-02T00:00:00Z'),
+            value: 115,
+          },
+        }),
+      );
+      expect(result.hrMaxSuggestion).toEqual({
+        value: 115,
+        date: '2020-01-02',
+        current: 100,
+      });
+    });
+
+    test('does not ask when the file is not above HR_MAX, but still records the day', async () => {
+      const { service, metrics } = withMetrics(190);
+
+      const result = await service.importTcx(
+        athlete,
+        tcxWithMaxHeartrate(115),
+        'Treino',
+      );
+
+      expect(metrics.athleteMetric.upsert).toHaveBeenCalledTimes(1);
+      expect(result.hrMaxSuggestion).toBeNull();
+    });
+
+    test('a failure with the metrics does not fail the import', async () => {
+      const { service, metrics, queue } = withMetrics(100);
+      metrics.athleteMetric.upsert.mockRejectedValue(new Error('db down'));
+
+      const result = await service.importTcx(
+        athlete,
+        tcxWithMaxHeartrate(115),
+        'Treino',
+      );
+
+      expect(result).toMatchObject({
+        eventId: 90,
+        alreadyImported: false,
+        processingQueued: true,
+        hrMaxSuggestion: null,
+      });
+      expect(queue.addActivityProcessingJob).toHaveBeenCalledWith(80, 90, true);
+    });
+
+    test('a file without heart rate records nothing and asks nothing', async () => {
+      const { service, metrics } = withMetrics(100);
+
+      const result = await service.importTcx(athlete, tcxFile(), 'Rodaje');
+
+      expect(metrics.athleteMetric.upsert).not.toHaveBeenCalled();
+      expect(result.hrMaxSuggestion).toBeNull();
+    });
   });
 });

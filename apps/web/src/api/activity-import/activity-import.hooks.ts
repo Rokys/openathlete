@@ -1,4 +1,5 @@
 import { eventKeys } from '@/api/event/event.keys';
+import { metricKeys } from '@/api/metric/metric.keys';
 import { trainingLoadKeys } from '@/api/training-load/training-load.keys';
 import {
   QueryClient,
@@ -22,6 +23,10 @@ const refreshImported = (
     queryClient.invalidateQueries({
       queryKey: [trainingLoadKeys.getWeeklyLoadSummary],
     }),
+    // The import records the day's maximum heart rate among the metrics
+    queryClient.invalidateQueries({ queryKey: [metricKeys.getMetrics] }),
+    queryClient.invalidateQueries({ queryKey: [metricKeys.getLatestMetrics] }),
+    queryClient.invalidateQueries({ queryKey: [metricKeys.getMetricHistory] }),
   ]);
 
 export function useImportFitMutation() {
